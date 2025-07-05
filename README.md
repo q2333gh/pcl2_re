@@ -18,7 +18,7 @@ PCL2 Reforged是对原始PCL2项目的现代化重构，目标是：
 - **桌面应用**: Electron
 - **UI库**: Material-UI (MUI)
 - **状态管理**: Zustand
-- **构建工具**: Webpack
+- **构建工具**: Vite
 - **代码规范**: ESLint + Prettier
 
 ## 📁 项目结构
@@ -39,8 +39,8 @@ pcl2_re/
 │   └── shared/             # 共享代码
 │       ├── types.ts        # 类型定义
 │       └── utils.ts        # 工具函数
-├── webpack.main.config.js   # 主进程构建配置
-├── webpack.renderer.config.js # 渲染进程构建配置
+├── vite.config.ts           # 渲染进程Vite配置
+├── vite.main.config.ts       # 主进程Vite配置
 ├── tsconfig.json           # TypeScript配置
 └── package.json           # 项目配置
 ```
