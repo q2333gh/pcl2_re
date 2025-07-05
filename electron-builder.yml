@@ -25,20 +25,12 @@ extraMetadata:
 # Windows配置
 win:
   target:
-    - target: nsis
-      arch: [x64, ia32]
     - target: portable  
       arch: [x64]
   artifactName: ${productName}-${version}-win-${arch}.${ext}
-  
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  shortcutName: PCL2 Reforged
-  installerIcon: assets/icon.ico
-  uninstallerIcon: assets/icon.ico
+  # 在Linux环境中构建Windows版本时禁用所有签名和验证
+  sign: null
+  verifyUpdateCodeSignature: false
 
 # Linux配置  
 linux:
