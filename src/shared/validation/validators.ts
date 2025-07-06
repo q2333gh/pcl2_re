@@ -236,7 +236,9 @@ export class ExcludeValidator extends BaseValidator {
           ? value.toLowerCase() === exclude.toLowerCase()
           : value === exclude;
         if (matches) {
-          return this.getErrorMessage(exclude);
+          // 当ignoreCase为true时，返回原始输入值而不是exclude值
+          const displayValue = this.options.ignoreCase ? value : exclude;
+          return this.getErrorMessage(displayValue);
         }
       } else {
         // 包含匹配
@@ -257,7 +259,7 @@ export class ExcludeValidator extends BaseValidator {
  * 文件名验证器
  */
 export class FileNameValidator extends BaseValidator {
-  private options: FileSystemOptions;
+  protected options: FileSystemOptions;
 
   constructor(options: FileSystemOptions = {}) {
     super({
@@ -303,11 +305,12 @@ export class FileNameValidator extends BaseValidator {
     const invalidChars = this.getInvalidFileNameChars();
     const charValidator = new ExcludeValidator({
       excludes: invalidChars,
-      exact: false
+      exact: false,
+      errorMessage: '文件名不可包含 % 字符！'
     });
     const charResult = charValidator.validate(value);
     if (charResult) {
-      return charResult.replace('输入内容不能包含', '文件名不可包含');
+      return charResult;
     }
 
     // 检查特殊字符串
@@ -347,7 +350,7 @@ export class FileNameValidator extends BaseValidator {
  * 文件夹名验证器
  */
 export class FolderNameValidator extends BaseValidator {
-  private options: FileSystemOptions;
+  protected options: FileSystemOptions;
 
   constructor(options: FileSystemOptions = {}) {
     super({
@@ -392,11 +395,12 @@ export class FolderNameValidator extends BaseValidator {
     const invalidChars = this.getInvalidFileNameChars();
     const charValidator = new ExcludeValidator({
       excludes: invalidChars,
-      exact: false
+      exact: false,
+      errorMessage: '文件夹名不可包含 % 字符！'
     });
     const charResult = charValidator.validate(value);
     if (charResult) {
-      return charResult.replace('输入内容不能包含', '文件夹名不可包含');
+      return charResult;
     }
 
     // 检查特殊字符串
