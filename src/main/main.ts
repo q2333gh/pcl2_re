@@ -11,12 +11,20 @@ class Application {
   private mainWindow: BrowserWindow | null = null;
 
   constructor() {
+    log.info('PCL2 Reforged 应用程序启动');
+    log.info(`运行环境: ${isDev() ? '开发' : '生产'}`);
+    log.info(`平台: ${process.platform}, 架构: ${process.arch}`);
+    log.info(`Electron版本: ${process.versions.electron}`);
+    log.info(`Node版本: ${process.versions.node}`);
     this.init();
   }
 
   private init(): void {
+    log.info('开始初始化应用程序...');
+    
     // 当 Electron 完成初始化并准备创建浏览器窗口时调用此方法
     app.whenReady().then(() => {
+      log.info('Electron已准备就绪');
       this.createWindow();
       
       app.on('activate', () => {
@@ -42,6 +50,8 @@ class Application {
   }
 
   private createWindow(): void {
+    log.info('开始创建主窗口...');
+    
     // 创建浏览器窗口
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -58,13 +68,31 @@ class Application {
       },
     });
 
+    log.info('主窗口创建完成');
+
     // 加载应用
     if (isDev()) {
+      log.info('开发模式：加载本地服务器');
       this.mainWindow.loadURL('http://localhost:3000');
       this.mainWindow.webContents.openDevTools();
     } else {
-      this.mainWindow.loadFile(path.join(__dirname, 'index.html'));
+      const indexPath = path.join(__dirname, 'renderer', 'index.html');
+      log.info(`生产模式：加载文件 ${indexPath}`);
+      this.mainWindow.loadFile(indexPath);
     }
+
+    // 监听页面加载事件
+    this.mainWindow.webContents.on('did-start-loading', () => {
+      log.info('页面开始加载');
+    });
+
+    this.mainWindow.webContents.on('did-finish-load', () => {
+      log.info('页面加载完成');
+    });
+
+    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      log.error(`页面加载失败: ${errorCode} - ${errorDescription}`);
+    });
 
     // 当窗口准备显示时显示窗口
     this.mainWindow.once('ready-to-show', () => {
@@ -74,6 +102,7 @@ class Application {
 
     // 窗口关闭时的处理
     this.mainWindow.on('closed', () => {
+      log.info('主窗口已关闭');
       this.mainWindow = null;
     });
   }

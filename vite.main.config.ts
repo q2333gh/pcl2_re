@@ -15,7 +15,25 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: false,
     rollupOptions: {
-      external: ['electron', 'path', 'fs', 'os'],
+      external: [
+        'electron', 
+        'path', 
+        'fs', 
+        'os', 
+        'util',
+        'crypto',
+        'stream',
+        'events',
+        'url',
+        'querystring',
+        'http',
+        'https',
+        'buffer',
+        'child_process',
+        'net',
+        'tls',
+        'zlib'
+      ],
       output: {
         format: 'cjs',
       },

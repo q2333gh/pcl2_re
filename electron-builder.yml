@@ -22,6 +22,10 @@ files:
 extraMetadata:
   main: dist/main.js
 
+# 精简配置 - 移除不必要的依赖
+asarUnpack:
+  - "!**/LICENSES.chromium.html"
+
 # Windows配置
 win:
   target:
@@ -31,6 +35,12 @@ win:
   # 在Linux环境中构建Windows版本时禁用所有签名和验证
   sign: null
   verifyUpdateCodeSignature: false
+  # 精简依赖
+  extraFiles:
+    - "!**/LICENSES.chromium.html"
+  # 只包含必要的语言包 (中文+英文)
+  extraMetadata:
+    electronLanguages: ["zh-CN", "en-US"]
 
 # Linux配置  
 linux:
@@ -43,6 +53,9 @@ linux:
       arch: [x64]
   category: Game
   artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  # 精简依赖
+  extraFiles:
+    - "!**/LICENSES.chromium.html"
 
 # macOS配置
 mac:
@@ -53,4 +66,9 @@ mac:
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
 
 # 发布配置 (设为null禁用自动发布)
-publish: null 
+publish: null
+
+# 精简打包配置
+compression: maximum
+npmRebuild: false
+buildDependenciesFromSource: false 
