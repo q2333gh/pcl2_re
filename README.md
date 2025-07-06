@@ -1,6 +1,9 @@
 # PCL2 Reforged
 
 使用现代化技术栈重构的Plain Craft Launcher 2，采用Electron + TypeScript + React架构。
+# run
+./release/linux-unpacked/pcl2-reforged --no-sandbox
+
 
 ## 📋 项目概述
 

@@ -72,9 +72,35 @@ class Application {
 
     // 加载应用
     if (isDev()) {
-      log.info('开发模式：加载本地服务器');
-      this.mainWindow.loadURL('http://localhost:3000');
-      this.mainWindow.webContents.openDevTools();
+      log.info('开发模式：尝试加载本地服务器');
+      // 检查开发服务器是否可用
+      const http = require('http');
+      const checkServer = () => {
+        return new Promise((resolve) => {
+          const req = http.get('http://localhost:3000', (_res: any) => {
+            resolve(true);
+          });
+          req.on('error', () => {
+            resolve(false);
+          });
+          req.setTimeout(1000, () => {
+            req.destroy();
+            resolve(false);
+          });
+        });
+      };
+      
+      checkServer().then((serverAvailable) => {
+        if (serverAvailable) {
+          log.info('开发服务器可用，加载 http://localhost:3000');
+          this.mainWindow?.loadURL('http://localhost:3000');
+          this.mainWindow?.webContents.openDevTools();
+        } else {
+          log.info('开发服务器不可用，加载构建文件');
+          const indexPath = path.join(__dirname, 'renderer', 'index.html');
+          this.mainWindow?.loadFile(indexPath);
+        }
+      });
     } else {
       const indexPath = path.join(__dirname, 'renderer', 'index.html');
       log.info(`生产模式：加载文件 ${indexPath}`);

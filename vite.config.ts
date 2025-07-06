@@ -22,7 +22,11 @@ export default defineConfig({
     rollupOptions: {
       external: ['electron'],
     },
+    assetsDir: 'assets',
   },
+  
+  // 基础路径配置
+  base: './',
 
   // 开发服务器
   server: {
