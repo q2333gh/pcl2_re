@@ -27,6 +27,9 @@
     "pack:linux": "npm run build && electron-builder --linux --dir",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
     "release:patch": "./scripts/release.sh patch",
     "release:minor": "./scripts/release.sh minor",
     "release:major": "./scripts/release.sh major",
@@ -48,6 +51,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
+    "vitest": "^3.2.4",
     "wait-on": "^7.2.0"
   },
   "dependencies": {
