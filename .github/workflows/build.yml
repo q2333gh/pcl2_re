@@ -1,0 +1,185 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Check assets directory
+      run: |
+        echo "Checking assets directory..."
+        ls -la assets/ || echo "Assets directory not found, creating placeholder icon"
+        if [ ! -f "assets/icon.png" ]; then
+          echo "Creating placeholder icon for Linux build"
+          mkdir -p assets
+          # Create a simple 512x512 PNG icon using ImageMagick or fallback
+          if command -v convert &> /dev/null; then
+            convert -size 512x512 xc:transparent -fill "#4CAF50" -draw "circle 256,256 256,50" assets/icon.png
+          else
+            # Fallback: create a minimal PNG file
+            echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" | base64 -d > assets/icon.png
+          fi
+        fi
+
+    - name: Build application
+      run: pnpm run build
+
+    - name: Build platform-specific packages
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          echo "Building for Linux..."
+          pnpm run dist:linux || echo "Linux build failed, trying without icon"
+          # Fallback build without icon if needed
+          if [ ! -f "release/PCL2 Reforged-1.0.0-linux-x64.AppImage" ]; then
+            echo "Retrying Linux build without icon..."
+            rm -f assets/icon.png
+            pnpm run dist:linux
+          fi
+        elif [ "${{ runner.os }}" = "Windows" ]; then
+          echo "Building for Windows..."
+          pnpm run dist:win
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          echo "Building for macOS..."
+          pnpm run dist:mac
+        fi
+
+    - name: List release files
+      run: |
+        echo "Release files:"
+        ls -la release/ || echo "No release files found"
+        echo "Dist files:"
+        ls -la dist/ || echo "No dist files found"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pcl2-reforged-${{ runner.os }}
+        path: |
+          release/
+          dist/
+        retention-days: 30
+        if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Extract version from tag
+      id: version
+      run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Prepare release files
+      run: |
+        echo "Preparing release files..."
+        mkdir -p release-files
+        
+        # Copy files from all platforms
+        for platform in ubuntu-latest windows-latest macOS-latest; do
+          if [ -d "artifacts/pcl2-reforged-$platform" ]; then
+            echo "Processing $platform files..."
+            cp -r artifacts/pcl2-reforged-$platform/release/* release-files/ 2>/dev/null || echo "No release files for $platform"
+            cp -r artifacts/pcl2-reforged-$platform/dist/* release-files/ 2>/dev/null || echo "No dist files for $platform"
+          fi
+        done
+        
+        echo "Release files prepared:"
+        ls -la release-files/
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: PCL2 Reforged ${{ steps.version.outputs.version }}
+        body: |
+          ## PCL2 Reforged ${{ steps.version.outputs.version }}
+          
+          ### 🚀 下载
+          - **Windows**: 下载 `.exe` 文件
+          - **Linux**: 下载 `.AppImage` 或 `.tar.gz` 文件
+          - **macOS**: 下载 `.dmg` 文件
+          
+          ### ✨ 更新内容
+          - 现代化技术栈重构
+          - 跨平台支持
+          - 更好的用户体验
+          - 智能加载策略
+          
+          ### 🛠️ 技术栈
+          - Electron + TypeScript + React
+          - Material-UI 组件库
+          - Zustand 状态管理
+          - Vite 构建工具
+          
+          ### 📋 安装说明
+          1. 下载对应平台的安装包
+          2. 解压或安装到本地目录
+          3. 运行应用程序
+          
+          ### 🔧 开发环境
+          ```bash
+          git clone <repository>
+          cd pcl2_re
+          pnpm install
+          pnpm run dev
+          ```
+        files: release-files/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

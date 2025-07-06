@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Type check
+      run: pnpm run type-check
+
+    - name: Lint
+      run: pnpm run lint
+
+    - name: Build
+      run: pnpm run build
+
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build application
+      run: pnpm run build
+
+    - name: Test build output
+      run: |
+        echo "Testing build output..."
+        ls -la dist/
+        ls -la dist/renderer/
+        
+        # Check if main files exist
+        if [ ! -f "dist/main.js" ]; then
+          echo "Error: main.js not found"
+          exit 1
+        fi
+        
+        if [ ! -f "dist/preload.js" ]; then
+          echo "Error: preload.js not found"
+          exit 1
+        fi
+        
+        if [ ! -f "dist/renderer/index.html" ]; then
+          echo "Error: index.html not found"
+          exit 1
+        fi
+        
+        echo "Build output validation passed"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ runner.os }}
+        path: dist/
+        retention-days: 7 
