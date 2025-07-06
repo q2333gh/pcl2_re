@@ -1,0 +1,136 @@
+name: Development Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-dev:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Check assets directory
+      run: |
+        echo "Checking assets directory..."
+        ls -la assets/ || echo "Assets directory not found, creating placeholder icon"
+        if [ ! -f "assets/icon.png" ]; then
+          echo "Creating placeholder icon for build"
+          mkdir -p assets
+          # Create a simple 512x512 PNG icon using ImageMagick or fallback
+          if command -v convert &> /dev/null; then
+            convert -size 512x512 xc:transparent -fill "#4CAF50" -draw "circle 256,256 256,50" assets/icon.png
+          else
+            # Fallback: create a minimal PNG file
+            echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" | base64 -d > assets/icon.png
+          fi
+        fi
+
+    - name: Build application
+      run: pnpm run build
+
+    - name: Build platform-specific packages (Development)
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          echo "Building for Linux (Development)..."
+          pnpm run dist:linux || echo "Linux build failed, trying without icon"
+          if [ ! -f "release/PCL2 Reforged-1.0.0-linux-x64.AppImage" ]; then
+            echo "Retrying Linux build without icon..."
+            rm -f assets/icon.png
+            pnpm run dist:linux
+          fi
+        elif [ "${{ runner.os }}" = "Windows" ]; then
+          echo "Building for Windows (Development)..."
+          pnpm run dist:win
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          echo "Building for macOS (Development)..."
+          pnpm run dist:mac
+        fi
+
+    - name: List build artifacts
+      run: |
+        echo "Build artifacts:"
+        ls -la dist/ || echo "No dist files found"
+        echo "Release files:"
+        ls -la release/ || echo "No release files found"
+
+    - name: Upload development artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dev-build-${{ runner.os }}-${{ github.sha }}
+        path: |
+          dist/
+          release/
+        retention-days: 7
+        if-no-files-found: error
+
+    - name: Comment PR with build info
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          let buildInfo = `## 🔨 构建完成 - ${{ runner.os }}
+          
+          **构建时间**: ${new Date().toISOString()}
+          **提交**: \`${{ github.sha }}\`
+          
+          ### 📦 构建产物
+          `;
+          
+          try {
+            const distFiles = fs.readdirSync('dist');
+            buildInfo += '\n**Dist目录**:\n';
+            distFiles.forEach(file => {
+              buildInfo += `- \`${file}\`\n`;
+            });
+          } catch (e) {
+            buildInfo += '\n**Dist目录**: 无文件\n';
+          }
+          
+          try {
+            const releaseFiles = fs.readdirSync('release');
+            buildInfo += '\n**Release目录**:\n';
+            releaseFiles.forEach(file => {
+              buildInfo += `- \`${file}\`\n`;
+            });
+          } catch (e) {
+            buildInfo += '\n**Release目录**: 无文件\n';
+          }
+          
+          buildInfo += `
+          
+          ### 📥 下载
+          构建产物已上传为GitHub Actions Artifacts，可在Actions页面下载。
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: buildInfo
+          }); 

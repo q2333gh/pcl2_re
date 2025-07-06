@@ -6,7 +6,7 @@
 
 ### GitHub Actions 工作流
 
-项目包含两个主要的GitHub Actions工作流：
+项目包含三个主要的GitHub Actions工作流：
 
 #### 1. CI 工作流 (`.github/workflows/ci.yml`)
 
@@ -18,10 +18,21 @@
 - 多Node.js版本测试 (18, 20, 22)
 - TypeScript类型检查
 - ESLint代码规范检查
-- 多平台构建测试
 - 构建产物验证
 
-#### 2. 发布工作流 (`.github/workflows/build.yml`)
+#### 2. 开发构建工作流 (`.github/workflows/build-dev.yml`)
+
+**触发条件：**
+- 推送到 `main` 或 `develop` 分支
+- 创建Pull Request到 `main` 或 `develop` 分支
+
+**功能：**
+- 多平台构建 (Windows, Linux, macOS)
+- 上传构建产物为Artifacts
+- PR自动评论构建信息
+- 7天保留期
+
+#### 3. 发布工作流 (`.github/workflows/build.yml`)
 
 **触发条件：**
 - 推送版本标签 (如 `v1.0.0`)
@@ -31,6 +42,32 @@
 - 多平台构建 (Windows, Linux, macOS)
 - 自动创建GitHub Release
 - 上传构建产物到Releases页面
+
+## 🔄 持续构建
+
+### 每次推送构建
+
+项目配置了持续构建流程，每次代码推送都会自动构建：
+
+#### 开发构建
+- **触发**: 推送到 `main` 或 `develop` 分支
+- **功能**: 多平台构建，上传为Artifacts
+- **保留**: 7天
+- **用途**: 开发测试、PR验证
+
+#### 发布构建
+- **触发**: 推送版本标签
+- **功能**: 创建GitHub Release
+- **保留**: 永久
+- **用途**: 正式发布
+
+### 构建流程
+
+```
+代码推送 → 开发构建 → Artifacts上传 → PR评论
+    ↓
+版本标签 → 发布构建 → GitHub Release → 用户下载
+```
 
 ## 📦 发布流程
 
